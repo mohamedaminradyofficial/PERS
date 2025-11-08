@@ -1,0 +1,372 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CREATOR
+  REVIEWER
+}
+
+enum DocumentType {
+  SERIES_BIBLE
+  FILM_LOOKBOOK
+  PITCH_DECK
+}
+
+enum ProjectStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  ARCHIVED
+}
+
+// 1) User
+model User {
+  id            String         @id @default(cuid())
+  name          String?
+  email         String         @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          Role           @default(CREATOR)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  organizations OrganizationMember[]
+  projects      Project[]
+  comments      Comment[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 2) Organization
+model Organization {
+  id        String               @id @default(cuid())
+  name      String
+  slug      String               @unique
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  members   OrganizationMember[]
+  projects  Project[]
+}
+
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  role           Role         @default(CREATOR)
+  userId         String
+  organizationId String
+  createdAt      DateTime     @default(now())
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+
+// 3) Project
+model Project {
+  id             String         @id @default(cuid())
+  title          String
+  description    String?
+  status         ProjectStatus  @default(DRAFT)
+  createdById    String
+  organizationId String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  createdBy      User           @relation(fields: [createdById], references: [id])
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
+  documents      Document[]
+  teamMembers    TeamMember[]
+  visualAssets   VisualAsset[]
+  moodboards     Moodboard[]
+  comments       Comment[]
+}
+
+// 4) Document
+model Document {
+  id                  String              @id @default(cuid())
+  type                DocumentType
+  projectId           String
+  sections            Json                // Structured sections based on template
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  project             Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  logline             Logline?
+  synopsisTreatment   SynopsisTreatment?
+  characters          Character[]
+  seasons             Season[]
+  comps               Comp[]
+  audienceSegments    AudienceSegment[]
+  budgetLines         BudgetLine[]
+  financePlans        FinancePlan[]
+  exportJobs          ExportJob[]
+}
+
+// 5) Character
+model Character {
+  id          String   @id @default(cuid())
+  documentId  String
+  name        String
+  description String
+  motivation  String?
+  arc         String?  // Character development arc
+  imageUrl    String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+// 6) Season
+model Season {
+  id          String    @id @default(cuid())
+  documentId  String
+  seasonNumber Int
+  title       String?
+  arc         String?   // Season story arc
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  episodes    Episode[]
+}
+
+// 7) Episode
+model Episode {
+  id            String   @id @default(cuid())
+  seasonId      String
+  episodeNumber Int
+  title         String
+  synopsis      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  season        Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+}
+
+// 8) PilotBreakdown
+model PilotBreakdown {
+  id         String   @id @default(cuid())
+  documentId String   @unique
+  content    String   // Detailed scene-by-scene breakdown
+  structure  Json     // Scene structure data
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// 9) Logline
+model Logline {
+  id         String   @id @default(cuid())
+  documentId String   @unique
+  content    String
+  wordCount  Int
+  hasHero    Boolean  @default(false)
+  hasInciting Boolean @default(false)  // Inciting incident
+  hasGoal    Boolean  @default(false)
+  hasStakes  Boolean  @default(false)
+  hasObstacle Boolean @default(false)
+  isValid    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+// 10) SynopsisTreatment
+model SynopsisTreatment {
+  id              String   @id @default(cuid())
+  documentId      String   @unique
+  synopsis        String?  // Must reveal ending
+  treatment       String?  // Must be in present tense
+  synopsisValid   Boolean  @default(false)
+  treatmentValid  Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  document        Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+// 11) Comp (Market Comparables)
+model Comp {
+  id              String   @id @default(cuid())
+  documentId      String
+  title           String
+  genre           String?
+  targetAudience  String?
+  budget          String?
+  justification   String   // Why this comp is relevant
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  document        Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+// 12) AudienceSegment
+model AudienceSegment {
+  id            String   @id @default(cuid())
+  documentId    String
+  demographic   String?  // Age, gender, income
+  psychographic String?  // Values, interests, lifestyle
+  behavioral    String?  // Viewing habits, preferences
+  geographic    String?  // Location, region
+  cultural      String?  // Cultural context
+  evidence      String?  // Supporting data
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+// 13) MarketInsight
+model MarketInsight {
+  id         String   @id @default(cuid())
+  title      String
+  content    String
+  source     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// 14) VisualAsset
+model VisualAsset {
+  id          String   @id @default(cuid())
+  projectId   String
+  fileName    String
+  fileUrl     String
+  fileType    String
+  fileSize    Int
+  description String?
+  watermarked Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// 15) Moodboard
+model Moodboard {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  images      Json     // Array of image URLs with descriptions
+  layout      Json?    // Grid layout configuration
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// 16) BudgetLine
+model BudgetLine {
+  id          String   @id @default(cuid())
+  documentId  String
+  category    String   // Pre-production, Production, Post-production
+  item        String
+  amount      Float
+  currency    String   @default("USD")
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+// 17) FinancePlan
+model FinancePlan {
+  id          String   @id @default(cuid())
+  documentId  String
+  source      String   // Funding source
+  percentage  Float
+  amount      Float?
+  assumptions String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+// 18) TeamMember
+model TeamMember {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  role        String
+  bio         String?
+  imageUrl    String?
+  experience  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// 19) Comment
+model Comment {
+  id         String   @id @default(cuid())
+  projectId  String
+  userId     String
+  content    String
+  targetType String?  // Section, element type
+  targetId   String?  // ID of the element being commented on
+  resolved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 20) ExportJob
+model ExportJob {
+  id          String   @id @default(cuid())
+  documentId  String
+  format      String   // PDF, PPTX, HTML
+  status      String   // pending, processing, completed, failed
+  fileUrl     String?
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
