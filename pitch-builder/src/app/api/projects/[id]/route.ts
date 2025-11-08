@@ -19,6 +19,8 @@ export async function GET(
       )
     }
 
+    const { id } = await params
+
     const project = await prisma.project.findUnique({
       where: {
         id
@@ -101,6 +103,7 @@ export async function PUT(
       )
     }
 
+    const { id } = await params
     const body = await request.json()
     const { title, description, status } = body
 
@@ -160,6 +163,8 @@ export async function DELETE(
         { status: 401 }
       )
     }
+
+    const { id } = await params
 
     const project = await prisma.project.findUnique({
       where: { id }
