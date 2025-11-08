@@ -3,13 +3,11 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface Project {
   id: string
   title: string
-  description: string | null
+  description?: string
   status: string
   createdAt: string
   updatedAt: string
@@ -18,16 +16,13 @@ interface Project {
     teamMembers: number
     comments: number
   }
-  documents: Array<{
-    id: string
-    type: string
-  }>
 }
 
 export default function DashboardPage() {
   const router = useRouter()
   const [projects, setProjects] = useState<Project[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     fetchProjects()
@@ -36,31 +31,35 @@ export default function DashboardPage() {
   const fetchProjects = async () => {
     try {
       const response = await fetch('/api/projects')
-      if (response.ok) {
-        const data = await response.json()
-        setProjects(data)
+      if (!response.ok) {
+        throw new Error('Failed to fetch projects')
       }
-    } catch (error) {
-      console.error('Failed to fetch projects:', error)
+      const data = await response.json()
+      setProjects(data)
+    } catch (err) {
+      setError('فشل في تحميل المشاريع')
+      console.error('Error fetching projects:', err)
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
-  const getDocumentTypeLabel = (type: string) => {
-    switch (type) {
-      case 'SERIES_BIBLE':
-        return 'كتاب مسلسل'
-      case 'FILM_LOOKBOOK':
-        return 'لوك-بوك سينمائي'
-      case 'PITCH_DECK':
-        return 'عرض تقديمي'
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'DRAFT':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'IN_REVIEW':
+        return 'bg-blue-100 text-blue-800'
+      case 'APPROVED':
+        return 'bg-green-100 text-green-800'
+      case 'ARCHIVED':
+        return 'bg-gray-100 text-gray-800'
       default:
-        return type
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
-  const getStatusLabel = (status: string) => {
+  const getStatusText = (status: string) => {
     switch (status) {
       case 'DRAFT':
         return 'مسودة'
@@ -75,147 +74,114 @@ export default function DashboardPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'DRAFT':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'IN_REVIEW':
-        return 'bg-blue-100 text-blue-800'
-      case 'APPROVED':
-        return 'bg-green-100 text-green-800'
-      case 'ARCHIVED':
-        return 'bg-slate-100 text-slate-800'
-      default:
-        return 'bg-slate-100 text-slate-800'
-    }
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
       {/* Header */}
       <header className="border-b bg-white/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/">
-            <h1 className="text-2xl font-bold text-slate-900">Pitch Builder</h1>
-          </Link>
-          <div className="flex gap-4">
-            <Button variant="outline" onClick={() => router.push('/auth/signin')}>
-              تسجيل الخروج
-            </Button>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-2xl font-bold text-slate-900">
+              Pitch Builder
+            </Link>
+            <div className="text-sm text-slate-600">Dashboard</div>
           </div>
+          <nav className="flex gap-4">
+            <Link
+              href="/templates"
+              className="px-4 py-2 text-slate-600 hover:text-slate-900 transition"
+            >
+              Templates
+            </Link>
+            <Link
+              href="/profile"
+              className="px-4 py-2 text-slate-600 hover:text-slate-900 transition"
+            >
+              Profile
+            </Link>
+          </nav>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-12">
         {/* Page Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex justify-between items-center mb-8">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">مشاريعي</h2>
+            <h1 className="text-4xl font-bold text-slate-900 mb-2">مشاريعي</h1>
             <p className="text-slate-600">My Projects</p>
           </div>
-          <Link href="/projects/new">
-            <Button size="lg">
-              <span className="mr-2">+</span>
-              مشروع جديد
-            </Button>
+          <Link
+            href="/projects/new"
+            className="px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition font-semibold"
+          >
+            + مشروع جديد
           </Link>
         </div>
 
         {/* Loading State */}
-        {isLoading && (
+        {loading && (
           <div className="text-center py-12">
-            <p className="text-slate-600">جاري التحميل...</p>
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-slate-900 border-t-transparent"></div>
+            <p className="mt-4 text-slate-600">جاري التحميل...</p>
           </div>
         )}
 
-        {/* Empty State */}
-        {!isLoading && projects.length === 0 && (
-          <Card className="max-w-2xl mx-auto">
-            <CardContent className="text-center py-12">
-              <div className="text-6xl mb-4">📝</div>
-              <h3 className="text-2xl font-bold mb-2">لا توجد مشاريع بعد</h3>
-              <p className="text-slate-600 mb-6">
-                ابدأ بإنشاء مشروعك الأول الآن
-              </p>
-              <Link href="/projects/new">
-                <Button size="lg">
-                  <span className="mr-2">+</span>
-                  إنشاء مشروع جديد
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+            {error}
+          </div>
         )}
 
         {/* Projects Grid */}
-        {!isLoading && projects.length > 0 && (
+        {!loading && !error && projects.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">📝</div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">لا توجد مشاريع بعد</h2>
+            <p className="text-slate-600 mb-6">ابدأ بإنشاء مشروعك الأول</p>
+            <Link
+              href="/projects/new"
+              className="inline-block px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition font-semibold"
+            >
+              + إنشاء مشروع جديد
+            </Link>
+          </div>
+        )}
+
+        {!loading && !error && projects.length > 0 && (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((project) => (
-              <Link key={project.id} href={`/projects/${project.id}`}>
-                <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardHeader>
-                    <div className="flex items-start justify-between mb-2">
-                      <CardTitle className="text-xl line-clamp-1">
-                        {project.title}
-                      </CardTitle>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
-                          project.status
-                        )}`}
-                      >
-                        {getStatusLabel(project.status)}
-                      </span>
-                    </div>
-                    {project.description && (
-                      <CardDescription className="line-clamp-2">
-                        {project.description}
-                      </CardDescription>
-                    )}
-                  </CardHeader>
+              <Link
+                key={project.id}
+                href={`/projects/${project.id}`}
+                className="block bg-white rounded-lg shadow-sm hover:shadow-md transition p-6"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-xl font-semibold text-slate-900">{project.title}</h3>
+                  <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(project.status)}`}>
+                    {getStatusText(project.status)}
+                  </span>
+                </div>
 
-                  <CardContent>
-                    {/* Document Types */}
-                    {project.documents.length > 0 && (
-                      <div className="mb-4">
-                        {project.documents.map((doc) => (
-                          <div
-                            key={doc.id}
-                            className="inline-block bg-slate-100 text-slate-700 px-3 py-1 rounded text-sm mr-2 mb-2"
-                          >
-                            {getDocumentTypeLabel(doc.type)}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                {project.description && (
+                  <p className="text-slate-600 text-sm mb-4 line-clamp-2">
+                    {project.description}
+                  </p>
+                )}
 
-                    {/* Stats */}
-                    <div className="flex gap-4 text-sm text-slate-600">
-                      <div>
-                        <span className="font-medium">{project._count.documents}</span>{' '}
-                        مستندات
-                      </div>
-                      <div>
-                        <span className="font-medium">{project._count.teamMembers}</span>{' '}
-                        أعضاء
-                      </div>
-                      <div>
-                        <span className="font-medium">{project._count.comments}</span>{' '}
-                        تعليقات
-                      </div>
-                    </div>
+                <div className="flex gap-4 text-sm text-slate-500 mb-4">
+                  <div>📄 {project._count.documents} مستندات</div>
+                  <div>👥 {project._count.teamMembers} أعضاء</div>
+                  <div>💬 {project._count.comments} تعليقات</div>
+                </div>
 
-                    {/* Date */}
-                    <div className="mt-4 text-xs text-slate-500">
-                      آخر تحديث:{' '}
-                      {new Date(project.updatedAt).toLocaleDateString('ar-EG')}
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="text-xs text-slate-400">
+                  آخر تحديث: {new Date(project.updatedAt).toLocaleDateString('ar-EG')}
+                </div>
               </Link>
             ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   )
 }
