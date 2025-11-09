@@ -25,6 +25,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate document type
+    const validTypes = ['SERIES_BIBLE', 'FILM_LOOKBOOK', 'PITCH_DECK']
+    if (!validTypes.includes(type)) {
+      return NextResponse.json(
+        { error: 'Invalid document type' },
+        { status: 400 }
+      )
+    }
+
     // Verify project ownership
     const project = await prisma.project.findUnique({
       where: { id: projectId }
@@ -61,6 +70,73 @@ export async function POST(request: NextRequest) {
     console.error('Failed to create document:', error)
     return NextResponse.json(
       { error: 'Failed to create document' },
+      { status: 500 }
+    )
+  }
+}
+
+// GET /api/documents - Get documents for a project
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const { searchParams } = new URL(request.url)
+    const projectId = searchParams.get('projectId')
+
+    if (!projectId) {
+      return NextResponse.json(
+        { error: 'Project ID required' },
+        { status: 400 }
+      )
+    }
+
+    // Verify project ownership
+    const project = await prisma.project.findUnique({
+      where: { id: projectId }
+    })
+
+    if (!project) {
+      return NextResponse.json(
+        { error: 'Project not found' },
+        { status: 404 }
+      )
+    }
+
+    if (project.createdById !== (session.user as any).id) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      )
+    }
+
+    const documents = await prisma.document.findMany({
+      where: { projectId },
+      include: {
+        logline: true,
+        synopsisTreatment: true,
+        characters: true,
+        seasons: {
+          include: {
+            episodes: true,
+          },
+        },
+        comps: true,
+        audienceSegments: true,
+      },
+    })
+
+    return NextResponse.json(documents)
+  } catch (error) {
+    console.error('Failed to fetch documents:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch documents' },
       { status: 500 }
     )
   }

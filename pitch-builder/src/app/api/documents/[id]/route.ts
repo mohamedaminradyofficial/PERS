@@ -6,9 +6,10 @@ import { prisma } from '@/lib/prisma'
 // GET /api/documents/[id] - Get document by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user) {
@@ -18,21 +19,28 @@ export async function GET(
       )
     }
 
-    const documentId = params.id
-
     const document = await prisma.document.findUnique({
-      where: { id: documentId },
+      where: { id },
       include: {
         project: true,
         logline: true,
         synopsisTreatment: true,
-        characters: true,
+        characters: {
+          orderBy: { order: 'asc' },
+        },
         seasons: {
           include: {
-            episodes: true
-          }
-        }
-      }
+            episodes: {
+              orderBy: { episodeNumber: 'asc' },
+            },
+          },
+          orderBy: { seasonNumber: 'asc' },
+        },
+        comps: true,
+        audienceSegments: true,
+        budgetLines: true,
+        financePlans: true,
+      },
     })
 
     if (!document) {
@@ -45,7 +53,7 @@ export async function GET(
     // Check authorization
     if (document.project.createdById !== (session.user as any).id) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Forbidden' },
         { status: 403 }
       )
     }
@@ -63,9 +71,10 @@ export async function GET(
 // PATCH /api/documents/[id] - Update document
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user) {
@@ -75,30 +84,37 @@ export async function PATCH(
       )
     }
 
-    const documentId = params.id
     const body = await request.json()
     const { sections } = body
 
     // Verify document ownership
     const document = await prisma.document.findUnique({
-      where: { id: documentId },
+      where: { id },
       include: {
         project: true
       }
     })
 
-    if (!document || document.project.createdById !== (session.user as any).id) {
+    if (!document) {
       return NextResponse.json(
-        { error: 'Document not found or unauthorized' },
+        { error: 'Document not found' },
         { status: 404 }
+      )
+    }
+
+    if (document.project.createdById !== (session.user as any).id) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
       )
     }
 
     // Update document
     const updatedDocument = await prisma.document.update({
-      where: { id: documentId },
+      where: { id },
       data: {
-        sections
+        sections,
+        updatedAt: new Date(),
       }
     })
 
@@ -115,9 +131,10 @@ export async function PATCH(
 // DELETE /api/documents/[id] - Delete document
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user) {
@@ -127,26 +144,31 @@ export async function DELETE(
       )
     }
 
-    const documentId = params.id
-
     // Verify document ownership
     const document = await prisma.document.findUnique({
-      where: { id: documentId },
+      where: { id },
       include: {
         project: true
       }
     })
 
-    if (!document || document.project.createdById !== (session.user as any).id) {
+    if (!document) {
       return NextResponse.json(
-        { error: 'Document not found or unauthorized' },
+        { error: 'Document not found' },
         { status: 404 }
+      )
+    }
+
+    if (document.project.createdById !== (session.user as any).id) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
       )
     }
 
     // Delete document
     await prisma.document.delete({
-      where: { id: documentId }
+      where: { id }
     })
 
     return NextResponse.json({ success: true })

@@ -1,415 +1,538 @@
 'use client'
 
-import { useState } from 'react'
-import CharacterManager from '@/components/characters/CharacterManager'
-import SeasonManager from '@/components/seasons/SeasonManager'
-
-interface Section {
-  [key: string]: any
-}
+import { useState, useEffect } from 'react'
 
 interface SeriesBibleEditorProps {
   documentId: string
-  initialSections: Section
-  onSave: (sections: Section) => Promise<void>
+  sections: any
+  onSave: (sections: any) => void
 }
 
-export default function SeriesBibleEditor({
-  documentId,
-  initialSections,
-  onSave
-}: SeriesBibleEditorProps) {
-  const [sections, setSections] = useState<Section>(initialSections)
-  const [activeSection, setActiveSection] = useState('logline')
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveMessage, setSaveMessage] = useState('')
+export default function SeriesBibleEditor({ documentId, sections, onSave }: SeriesBibleEditorProps) {
+  const [activeTab, setActiveTab] = useState('overview')
+  const [formData, setFormData] = useState({
+    // Overview Section
+    title: sections?.title || '',
+    logline: sections?.logline || '',
+    executiveSummary: sections?.executiveSummary || '',
+    whyThisWhyNow: sections?.whyThisWhyNow || '',
 
-  const sectionsList = [
-    { id: 'coverPage', title: 'غلاف', titleEn: 'Cover Page', icon: '📄' },
-    { id: 'logline', title: 'اللوج لاين', titleEn: 'Logline', icon: '✍️' },
-    { id: 'synopsis', title: 'الملخص', titleEn: 'Synopsis', icon: '📝' },
-    { id: 'treatment', title: 'السيناريو', titleEn: 'Treatment', icon: '📖' },
-    { id: 'world', title: 'العالم', titleEn: 'World', icon: '🌍' },
-    { id: 'toneAndStyle', title: 'النبرة والأسلوب', titleEn: 'Tone & Style', icon: '🎨' },
-    { id: 'characters', title: 'الشخصيات', titleEn: 'Characters', icon: '👥' },
-    { id: 'seasons', title: 'المواسم', titleEn: 'Seasons', icon: '📺' },
-    { id: 'pilot', title: 'الحلقة التجريبية', titleEn: 'Pilot Episode', icon: '🎬' }
-  ]
+    // Story Section
+    synopsis: sections?.synopsis || '',
+    treatment: sections?.treatment || '',
 
-  const handleSectionChange = (sectionId: string, field: string, value: any) => {
-    setSections((prev) => ({
+    // Characters Section
+    characters: sections?.characters || [],
+
+    // Season Structure
+    seasonArc: sections?.seasonArc || '',
+    pilotBreakdown: sections?.pilotBreakdown || '',
+
+    // World & Tone
+    worldDescription: sections?.worldDescription || '',
+    tone: sections?.tone || '',
+    visualStyle: sections?.visualStyle || '',
+    cinematography: sections?.cinematography || '',
+    colorPalette: sections?.colorPalette || '',
+
+    // Market & Audience
+    comps: sections?.comps || [],
+    targetAudience: sections?.targetAudience || '',
+    marketAnalysis: sections?.marketAnalysis || '',
+
+    // Production
+    productionPlan: sections?.productionPlan || '',
+    budget: sections?.budget || '',
+    financing: sections?.financing || '',
+
+    // Distribution
+    distributionStrategy: sections?.distributionStrategy || '',
+    marketing: sections?.marketing || '',
+  })
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({
       ...prev,
-      [sectionId]: {
-        ...prev[sectionId],
-        [field]: value
-      }
+      [field]: value
     }))
   }
 
-  const handleSave = async () => {
-    setIsSaving(true)
-    setSaveMessage('')
-
-    try {
-      await onSave(sections)
-      setSaveMessage('✓ تم الحفظ بنجاح')
-      setTimeout(() => setSaveMessage(''), 3000)
-    } catch (error) {
-      setSaveMessage('✗ فشل الحفظ')
-      console.error('Failed to save:', error)
-    } finally {
-      setIsSaving(false)
-    }
+  const handleSave = () => {
+    onSave(formData)
   }
 
-  const renderSectionContent = () => {
-    switch (activeSection) {
-      case 'coverPage':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">غلاف المشروع / Cover Page</h2>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">العنوان / Title</label>
-              <input
-                type="text"
-                value={sections.coverPage?.title || ''}
-                onChange={(e) => handleSectionChange('coverPage', 'title', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-                placeholder="عنوان المسلسل..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">الشعار / Tagline</label>
-              <input
-                type="text"
-                value={sections.coverPage?.tagline || ''}
-                onChange={(e) => handleSectionChange('coverPage', 'tagline', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-                placeholder="شعار جذاب..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">الكاتب / Created By</label>
-              <input
-                type="text"
-                value={sections.coverPage?.createdBy || ''}
-                onChange={(e) => handleSectionChange('coverPage', 'createdBy', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-                placeholder="اسم الكاتب..."
-              />
-            </div>
-          </div>
-        )
-
-      case 'logline':
-        const wordCount = sections.logline?.content?.split(/\s+/).filter((w: string) => w).length || 0
-        const isValidLength = wordCount >= 18 && wordCount <= 35
-
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">اللوج لاين / Logline</h2>
-
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="font-semibold mb-2">المتطلبات / Requirements:</h3>
-              <ul className="text-sm space-y-1 list-disc list-inside">
-                <li>18-35 كلمة (Word count: 18-35)</li>
-                <li>البطل (Hero/Protagonist)</li>
-                <li>الحدث المحفز (Inciting incident)</li>
-                <li>الهدف (Goal)</li>
-                <li>المخاطر (Stakes)</li>
-                <li>العقبة (Obstacle)</li>
-              </ul>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium">اللوج لاين / Logline</label>
-                <span className={`text-sm ${isValidLength ? 'text-green-600' : 'text-red-600'}`}>
-                  {wordCount} كلمة / words
-                </span>
-              </div>
-              <textarea
-                value={sections.logline?.content || ''}
-                onChange={(e) => handleSectionChange('logline', 'content', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 h-32"
-                placeholder="اكتب اللوج لاين هنا..."
-              />
-              {!isValidLength && wordCount > 0 && (
-                <p className="text-sm text-red-600 mt-1">
-                  يجب أن يكون عدد الكلمات بين 18 و 35 كلمة
-                </p>
-              )}
-            </div>
-          </div>
-        )
-
-      case 'synopsis':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">الملخص / Synopsis</h2>
-
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h3 className="font-semibold mb-2">تنبيه مهم / Important Note:</h3>
-              <p className="text-sm">
-                يجب أن يكشف الملخص عن النهاية. الملخص هو للمنتجين والمستثمرين، وليس للجمهور.
-              </p>
-              <p className="text-sm mt-1">
-                The synopsis must reveal the ending. It's for producers and investors, not the audience.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">الملخص الكامل / Full Synopsis</label>
-              <textarea
-                value={sections.synopsis?.content || ''}
-                onChange={(e) => handleSectionChange('synopsis', 'content', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 h-64"
-                placeholder="اكتب الملخص الكامل للقصة مع الكشف عن النهاية..."
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="revealsEnding"
-                checked={sections.synopsis?.revealsEnding || false}
-                onChange={(e) => handleSectionChange('synopsis', 'revealsEnding', e.target.checked)}
-                className="w-4 h-4"
-              />
-              <label htmlFor="revealsEnding" className="text-sm">
-                يكشف هذا الملخص عن النهاية / This synopsis reveals the ending
-              </label>
-            </div>
-          </div>
-        )
-
-      case 'treatment':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">السيناريو / Treatment</h2>
-
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h3 className="font-semibold mb-2">تنبيه مهم / Important Note:</h3>
-              <p className="text-sm">
-                يجب أن يكون Treatment بصيغة المضارع (Present tense).
-              </p>
-              <p className="text-sm mt-1">
-                The treatment must be written in present tense.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Treatment</label>
-              <textarea
-                value={sections.treatment?.content || ''}
-                onChange={(e) => handleSectionChange('treatment', 'content', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 h-96"
-                placeholder="اكتب ال Treatment بصيغة المضارع..."
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="isPresentTense"
-                checked={sections.treatment?.isPresentTense || false}
-                onChange={(e) => handleSectionChange('treatment', 'isPresentTense', e.target.checked)}
-                className="w-4 h-4"
-              />
-              <label htmlFor="isPresentTense" className="text-sm">
-                هذا ال Treatment مكتوب بصيغة المضارع / This treatment is in present tense
-              </label>
-            </div>
-          </div>
-        )
-
-      case 'world':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">عالم القصة / Story World</h2>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">المكان / Setting</label>
-              <textarea
-                value={sections.world?.setting || ''}
-                onChange={(e) => handleSectionChange('world', 'setting', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 h-24"
-                placeholder="صف المكان الذي تدور فيه الأحداث..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">الزمان والمكان / Time & Place</label>
-              <textarea
-                value={sections.world?.timeAndPlace || ''}
-                onChange={(e) => handleSectionChange('world', 'timeAndPlace', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 h-24"
-                placeholder="متى وأين تدور القصة؟"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">الأسلوب البصري / Visual Style</label>
-              <textarea
-                value={sections.world?.visualStyle || ''}
-                onChange={(e) => handleSectionChange('world', 'visualStyle', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 h-24"
-                placeholder="صف الأسلوب البصري والإخراجي..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">الجو العام / Atmosphere</label>
-              <textarea
-                value={sections.world?.atmosphere || ''}
-                onChange={(e) => handleSectionChange('world', 'atmosphere', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 h-24"
-                placeholder="صف الجو والمزاج العام للعمل..."
-              />
-            </div>
-          </div>
-        )
-
-      case 'toneAndStyle':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">النبرة والأسلوب / Tone & Style</h2>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">النبرة / Tone</label>
-              <textarea
-                value={sections.toneAndStyle?.tone || ''}
-                onChange={(e) => handleSectionChange('toneAndStyle', 'tone', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 h-24"
-                placeholder="صف النبرة العامة (كوميدي، درامي، تشويقي، إلخ)..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">النوع / Genre</label>
-              <input
-                type="text"
-                value={sections.toneAndStyle?.genre || ''}
-                onChange={(e) => handleSectionChange('toneAndStyle', 'genre', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-                placeholder="النوع (Drama, Comedy, Thriller, etc.)"
-              />
-            </div>
-          </div>
-        )
-
-      case 'characters':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold mb-6">الشخصيات / Characters</h2>
-            <CharacterManager documentId={documentId} />
-          </div>
-        )
-
-      case 'seasons':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold mb-6">المواسم والحلقات / Seasons & Episodes</h2>
-            <SeasonManager documentId={documentId} />
-          </div>
-        )
-
-      case 'pilot':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">الحلقة التجريبية / Pilot Episode</h2>
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-              <p className="text-sm">
-                تفصيل مشهد بمشهد للحلقة التجريبية / Scene-by-scene breakdown of the pilot episode
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">تفصيل الحلقة / Episode Breakdown</label>
-              <textarea
-                value={sections.pilot?.breakdown || ''}
-                onChange={(e) => handleSectionChange('pilot', 'breakdown', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 h-96"
-                placeholder="اكتب تفصيل مشهد بمشهد للحلقة التجريبية..."
-              />
-            </div>
-          </div>
-        )
-
-      default:
-        return (
-          <div className="text-center py-12 text-slate-500">
-            <p>اختر قسماً من القائمة الجانبية</p>
-            <p className="text-sm mt-1">Select a section from the sidebar</p>
-          </div>
-        )
-    }
-  }
+  const tabs = [
+    { id: 'overview', label: 'نظرة عامة / Overview', icon: '📋' },
+    { id: 'story', label: 'القصة / Story', icon: '📖' },
+    { id: 'characters', label: 'الشخصيات / Characters', icon: '👥' },
+    { id: 'season', label: 'الموسم / Season', icon: '📺' },
+    { id: 'world', label: 'العالم والنبرة / World & Tone', icon: '🎨' },
+    { id: 'market', label: 'السوق / Market', icon: '📊' },
+    { id: 'production', label: 'الإنتاج / Production', icon: '🎬' },
+  ]
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-slate-200 overflow-y-auto">
-        <div className="p-4 border-b">
-          <h2 className="font-bold text-lg">TV Series Bible</h2>
-          <p className="text-xs text-slate-500">كتاب المسلسل التلفزيوني</p>
-        </div>
-
-        <nav className="p-2">
-          {sectionsList.map((section) => (
+    <div className="max-w-6xl mx-auto">
+      {/* Section Tabs */}
+      <div className="bg-white rounded-xl shadow-sm mb-6 overflow-x-auto">
+        <div className="flex border-b">
+          {tabs.map((tab) => (
             <button
-              key={section.id}
-              onClick={() => setActiveSection(section.id)}
-              className={`w-full text-left px-4 py-3 rounded-lg mb-1 transition ${
-                activeSection === section.id
-                  ? 'bg-slate-900 text-white'
-                  : 'hover:bg-slate-100 text-slate-700'
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-6 py-4 font-semibold transition whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'text-slate-900 border-b-2 border-slate-900'
+                  : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <span>{section.icon}</span>
-                <div>
-                  <div className="text-sm font-medium">{section.titleEn}</div>
-                  <div className="text-xs opacity-75">{section.title}</div>
-                </div>
-              </div>
+              <span className="mr-2">{tab.icon}</span>
+              {tab.label}
             </button>
           ))}
-        </nav>
+        </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center z-10">
-          <div>
-            <h1 className="text-xl font-bold">
-              {sectionsList.find(s => s.id === activeSection)?.titleEn}
-            </h1>
-            <p className="text-sm text-slate-500">
-              {sectionsList.find(s => s.id === activeSection)?.title}
-            </p>
-          </div>
+      {/* Content Area */}
+      <div className="bg-white rounded-xl shadow-sm p-8">
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Overview Section</h2>
 
-          <div className="flex items-center gap-4">
-            {saveMessage && (
-              <span className={`text-sm ${saveMessage.includes('✓') ? 'text-green-600' : 'text-red-600'}`}>
-                {saveMessage}
-              </span>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Project Title
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                placeholder="Enter series title"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Logline (18-35 words)
+              </label>
+              <textarea
+                value={formData.logline}
+                onChange={(e) => handleInputChange('logline', e.target.value)}
+                rows={3}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="One-sentence summary with hero, inciting incident, goal, stakes, and obstacle"
+              />
+              <p className="text-sm text-slate-500 mt-1">
+                Word count: {formData.logline.split(' ').filter((w: string) => w).length}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Executive Summary
+              </label>
+              <textarea
+                value={formData.executiveSummary}
+                onChange={(e) => handleInputChange('executiveSummary', e.target.value)}
+                rows={6}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Brief overview of the series concept"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Why This / Why Now
+              </label>
+              <textarea
+                value={formData.whyThisWhyNow}
+                onChange={(e) => handleInputChange('whyThisWhyNow', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Why this story matters now and why it will resonate with audiences"
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'story' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Story Section</h2>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Synopsis (Must reveal ending)
+              </label>
+              <textarea
+                value={formData.synopsis}
+                onChange={(e) => handleInputChange('synopsis', e.target.value)}
+                rows={8}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Complete story overview including the ending"
+              />
+              <p className="text-sm text-slate-500 mt-1">
+                Remember to reveal the ending in the synopsis
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Treatment (Present tense, detailed scenes)
+              </label>
+              <textarea
+                value={formData.treatment}
+                onChange={(e) => handleInputChange('treatment', e.target.value)}
+                rows={12}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Detailed scene-by-scene breakdown in present tense"
+              />
+              <p className="text-sm text-slate-500 mt-1">
+                Write in present tense to convey tone and theme
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'characters' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-slate-900">Characters</h2>
+              <button
+                onClick={() => {
+                  const newChar = {
+                    id: Date.now(),
+                    name: '',
+                    description: '',
+                    motivation: '',
+                    arc: ''
+                  }
+                  handleInputChange('characters', [...formData.characters, newChar])
+                }}
+                className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
+              >
+                + Add Character
+              </button>
+            </div>
+
+            {formData.characters.length === 0 ? (
+              <div className="text-center py-12 bg-slate-50 rounded-lg">
+                <div className="text-6xl mb-4">👤</div>
+                <p className="text-slate-600">No characters yet. Add your first character above.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {formData.characters.map((char: any, index: number) => (
+                  <div key={char.id} className="border border-slate-200 rounded-lg p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-lg font-semibold">Character #{index + 1}</h3>
+                      <button
+                        onClick={() => {
+                          handleInputChange(
+                            'characters',
+                            formData.characters.filter((c: any) => c.id !== char.id)
+                          )
+                        }}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Name
+                        </label>
+                        <input
+                          type="text"
+                          value={char.name}
+                          onChange={(e) => {
+                            const updated = formData.characters.map((c: any) =>
+                              c.id === char.id ? { ...c, name: e.target.value } : c
+                            )
+                            handleInputChange('characters', updated)
+                          }}
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+                          placeholder="Character name"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Description
+                        </label>
+                        <textarea
+                          value={char.description}
+                          onChange={(e) => {
+                            const updated = formData.characters.map((c: any) =>
+                              c.id === char.id ? { ...c, description: e.target.value } : c
+                            )
+                            handleInputChange('characters', updated)
+                          }}
+                          rows={3}
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg resize-none"
+                          placeholder="Brief character description"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Motivation
+                        </label>
+                        <input
+                          type="text"
+                          value={char.motivation}
+                          onChange={(e) => {
+                            const updated = formData.characters.map((c: any) =>
+                              c.id === char.id ? { ...c, motivation: e.target.value } : c
+                            )
+                            handleInputChange('characters', updated)
+                          }}
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+                          placeholder="What drives this character?"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Character Arc
+                        </label>
+                        <textarea
+                          value={char.arc}
+                          onChange={(e) => {
+                            const updated = formData.characters.map((c: any) =>
+                              c.id === char.id ? { ...c, arc: e.target.value } : c
+                            )
+                            handleInputChange('characters', updated)
+                          }}
+                          rows={2}
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg resize-none"
+                          placeholder="How does this character evolve?"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? 'جاري الحفظ...' : 'حفظ / Save'}
-            </button>
           </div>
-        </div>
+        )}
 
-        <div className="p-8">
-          {renderSectionContent()}
+        {activeTab === 'season' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Season Structure</h2>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Season Arc (Overall story arc for Season 1)
+              </label>
+              <textarea
+                value={formData.seasonArc}
+                onChange={(e) => handleInputChange('seasonArc', e.target.value)}
+                rows={6}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Describe the overall narrative arc for the first season"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Pilot Episode Breakdown
+              </label>
+              <textarea
+                value={formData.pilotBreakdown}
+                onChange={(e) => handleInputChange('pilotBreakdown', e.target.value)}
+                rows={10}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Scene-by-scene breakdown of the pilot episode"
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'world' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">World & Tone</h2>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                World Description
+              </label>
+              <textarea
+                value={formData.worldDescription}
+                onChange={(e) => handleInputChange('worldDescription', e.target.value)}
+                rows={6}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Describe the world of your series"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Tone
+              </label>
+              <textarea
+                value={formData.tone}
+                onChange={(e) => handleInputChange('tone', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="e.g., Dark comedy, Suspenseful thriller, Heartwarming drama"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Visual Style
+              </label>
+              <textarea
+                value={formData.visualStyle}
+                onChange={(e) => handleInputChange('visualStyle', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Overall visual aesthetic and style"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Cinematography
+              </label>
+              <textarea
+                value={formData.cinematography}
+                onChange={(e) => handleInputChange('cinematography', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Camera style, movement, framing preferences"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Color Palette
+              </label>
+              <input
+                type="text"
+                value={formData.colorPalette}
+                onChange={(e) => handleInputChange('colorPalette', e.target.value)}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                placeholder="e.g., Muted blues and grays, Warm earth tones, Neon and cyberpunk"
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'market' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Market & Audience</h2>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Target Audience
+              </label>
+              <textarea
+                value={formData.targetAudience}
+                onChange={(e) => handleInputChange('targetAudience', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Demographics, psychographics, viewing habits"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Market Analysis
+              </label>
+              <textarea
+                value={formData.marketAnalysis}
+                onChange={(e) => handleInputChange('marketAnalysis', e.target.value)}
+                rows={6}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Market opportunities, competitive landscape, positioning"
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'production' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Production & Distribution</h2>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Production Plan
+              </label>
+              <textarea
+                value={formData.productionPlan}
+                onChange={(e) => handleInputChange('productionPlan', e.target.value)}
+                rows={6}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Timeline, phases, milestones"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Budget Overview
+              </label>
+              <textarea
+                value={formData.budget}
+                onChange={(e) => handleInputChange('budget', e.target.value)}
+                rows={6}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Budget breakdown by category"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Financing Strategy
+              </label>
+              <textarea
+                value={formData.financing}
+                onChange={(e) => handleInputChange('financing', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Funding sources, partnerships, revenue projections"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Distribution Strategy
+              </label>
+              <textarea
+                value={formData.distributionStrategy}
+                onChange={(e) => handleInputChange('distributionStrategy', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Platforms, release strategy, distribution channels"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Marketing Plan
+              </label>
+              <textarea
+                value={formData.marketing}
+                onChange={(e) => handleInputChange('marketing', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Marketing channels, timing, target segments"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Save Button */}
+        <div className="mt-8 pt-6 border-t">
+          <button
+            onClick={handleSave}
+            className="w-full px-6 py-3 bg-slate-900 text-white rounded-lg font-semibold hover:bg-slate-800 transition"
+          >
+            Save Changes
+          </button>
         </div>
       </div>
     </div>

@@ -192,6 +192,42 @@ export default function Dashboard() {
                 </Link>
               </div>
 
+              {/* Quick Create Cards */}
+              <div className="grid md:grid-cols-3 gap-6 mb-8">
+                <Link
+                  href="/dashboard/documents/new?type=SERIES_BIBLE"
+                  className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition border-2 border-transparent hover:border-slate-900"
+                >
+                  <div className="text-5xl mb-4">📺</div>
+                  <h3 className="text-xl font-semibold mb-2">TV Series Bible</h3>
+                  <p className="text-slate-600 text-sm">
+                    Create a comprehensive series bible with characters, season arcs, and pilot breakdown
+                  </p>
+                </Link>
+
+                <Link
+                  href="/dashboard/documents/new?type=FILM_LOOKBOOK"
+                  className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition border-2 border-transparent hover:border-slate-900"
+                >
+                  <div className="text-5xl mb-4">🎬</div>
+                  <h3 className="text-xl font-semibold mb-2">Film Lookbook</h3>
+                  <p className="text-slate-600 text-sm">
+                    Build a visual-first pitch deck for your film with moodboards and style references
+                  </p>
+                </Link>
+
+                <Link
+                  href="/dashboard/documents/new?type=PITCH_DECK"
+                  className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition border-2 border-transparent hover:border-slate-900"
+                >
+                  <div className="text-5xl mb-4">📊</div>
+                  <h3 className="text-xl font-semibold mb-2">Pitch Deck</h3>
+                  <p className="text-slate-600 text-sm">
+                    Create a concise pitch deck with essential elements for quick pitching
+                  </p>
+                </Link>
+              </div>
+
               {/* Loading State */}
               {loading && (
                 <div className="text-center py-12">
@@ -379,7 +415,7 @@ export default function Dashboard() {
                   <div className="text-center">
                     <div className="text-4xl font-bold text-slate-900 mb-2">
                       {projects.filter(p => p.status === 'APPROVED').length}
-                    </div>
+                    </</div>
                     <div className="text-sm text-slate-600">Approved</div>
                   </div>
                 </div>
