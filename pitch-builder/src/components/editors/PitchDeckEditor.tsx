@@ -2,269 +2,392 @@
 
 import { useState } from 'react'
 
-interface Section {
-  [key: string]: any
-}
-
 interface PitchDeckEditorProps {
   documentId: string
-  initialSections: Section
-  onSave: (sections: Section) => Promise<void>
+  sections: any
+  onSave: (sections: any) => void
 }
 
-export default function PitchDeckEditor({
-  documentId,
-  initialSections,
-  onSave
-}: PitchDeckEditorProps) {
-  const [sections, setSections] = useState<Section>(initialSections)
-  const [activeSection, setActiveSection] = useState('logline')
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveMessage, setSaveMessage] = useState('')
+export default function PitchDeckEditor({ documentId, sections, onSave }: PitchDeckEditorProps) {
+  const [activeTab, setActiveTab] = useState('essentials')
+  const [formData, setFormData] = useState({
+    // Essential Elements
+    title: sections?.title || '',
+    logline: sections?.logline || '',
+    elevator: sections?.elevator || '',
 
-  const sectionsList = [
-    { id: 'coverSlide', title: 'شريحة الغلاف', titleEn: 'Cover Slide', icon: '📄' },
-    { id: 'logline', title: 'اللوج لاين', titleEn: 'Logline', icon: '✍️' },
-    { id: 'concept', title: 'المفهوم', titleEn: 'Concept', icon: '💡' },
-    { id: 'keyPoints', title: 'النقاط الرئيسية', titleEn: 'Key Points', icon: '🎯' }
-  ]
+    // Core Story
+    synopsis: sections?.synopsis || '',
+    whyThisWhyNow: sections?.whyThisWhyNow || '',
 
-  const handleSectionChange = (sectionId: string, field: string, value: any) => {
-    setSections((prev) => ({
+    // Key Characters (Top 3)
+    mainCharacters: sections?.mainCharacters || '',
+
+    // Visual Identity (Concise)
+    visualStyle: sections?.visualStyle || '',
+    tone: sections?.tone || '',
+
+    // Market (2-3 Comps)
+    comps: sections?.comps || '',
+    targetAudience: sections?.targetAudience || '',
+
+    // Business Essentials
+    budgetOverview: sections?.budgetOverview || '',
+    financingAsk: sections?.financingAsk || '',
+    distributionPlan: sections?.distributionPlan || '',
+
+    // Team (Key people only)
+    keyTeam: sections?.keyTeam || '',
+
+    // Call to Action
+    ask: sections?.ask || '',
+    timeline: sections?.timeline || '',
+  })
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({
       ...prev,
-      [sectionId]: {
-        ...prev[sectionId],
-        [field]: value
-      }
+      [field]: value
     }))
   }
 
-  const handleSave = async () => {
-    setIsSaving(true)
-    setSaveMessage('')
-
-    try {
-      await onSave(sections)
-      setSaveMessage('✓ تم الحفظ بنجاح')
-      setTimeout(() => setSaveMessage(''), 3000)
-    } catch (error) {
-      setSaveMessage('✗ فشل الحفظ')
-      console.error('Failed to save:', error)
-    } finally {
-      setIsSaving(false)
-    }
+  const handleSave = () => {
+    onSave(formData)
   }
 
-  const renderSectionContent = () => {
-    switch (activeSection) {
-      case 'coverSlide':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">شريحة الغلاف / Cover Slide</h2>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">العنوان / Title</label>
-              <input
-                type="text"
-                value={sections.coverSlide?.title || ''}
-                onChange={(e) => handleSectionChange('coverSlide', 'title', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-                placeholder="عنوان المشروع..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">الشعار / Tagline</label>
-              <input
-                type="text"
-                value={sections.coverSlide?.tagline || ''}
-                onChange={(e) => handleSectionChange('coverSlide', 'tagline', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-                placeholder="شعار جذاب..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">مقدم العرض / Presenter</label>
-              <input
-                type="text"
-                value={sections.coverSlide?.presenter || ''}
-                onChange={(e) => handleSectionChange('coverSlide', 'presenter', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-                placeholder="اسم مقدم العرض..."
-              />
-            </div>
-          </div>
-        )
-
-      case 'logline':
-        const wordCount = sections.logline?.content?.split(/\s+/).filter((w: string) => w).length || 0
-        const isValidLength = wordCount >= 18 && wordCount <= 35
-
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">اللوج لاين / Logline</h2>
-
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="font-semibold mb-2">المتطلبات / Requirements:</h3>
-              <ul className="text-sm space-y-1 list-disc list-inside">
-                <li>18-35 كلمة (Word count: 18-35)</li>
-                <li>البطل (Hero/Protagonist)</li>
-                <li>الحدث المحفز (Inciting incident)</li>
-                <li>الهدف (Goal)</li>
-                <li>المخاطر (Stakes)</li>
-                <li>العقبة (Obstacle)</li>
-              </ul>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium">اللوج لاين / Logline</label>
-                <span className={`text-sm ${isValidLength ? 'text-green-600' : 'text-red-600'}`}>
-                  {wordCount} كلمة / words
-                </span>
-              </div>
-              <textarea
-                value={sections.logline?.content || ''}
-                onChange={(e) => handleSectionChange('logline', 'content', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 h-32"
-                placeholder="اكتب اللوج لاين هنا..."
-              />
-              {!isValidLength && wordCount > 0 && (
-                <p className="text-sm text-red-600 mt-1">
-                  يجب أن يكون عدد الكلمات بين 18 و 35 كلمة
-                </p>
-              )}
-            </div>
-          </div>
-        )
-
-      case 'concept':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">المفهوم / Concept</h2>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">المفهوم الأساسي / Core Concept</label>
-              <textarea
-                value={sections.concept?.content || ''}
-                onChange={(e) => handleSectionChange('concept', 'content', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 h-48"
-                placeholder="اشرح المفهوم الأساسي للمشروع بشكل مختصر وجذاب..."
-              />
-            </div>
-          </div>
-        )
-
-      case 'keyPoints':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">النقاط الرئيسية / Key Points</h2>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">نقطة البيع الفريدة / Unique Selling Point</label>
-              <textarea
-                value={sections.keyPoints?.uniqueSellingPoint || ''}
-                onChange={(e) => handleSectionChange('keyPoints', 'uniqueSellingPoint', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 h-24"
-                placeholder="ما الذي يميز هذا المشروع؟"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">الجمهور المستهدف / Target Audience</label>
-              <textarea
-                value={sections.keyPoints?.targetAudience || ''}
-                onChange={(e) => handleSectionChange('keyPoints', 'targetAudience', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 h-24"
-                placeholder="من هو الجمهور المستهدف؟"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">إمكانات السوق / Market Potential</label>
-              <textarea
-                value={sections.keyPoints?.marketPotential || ''}
-                onChange={(e) => handleSectionChange('keyPoints', 'marketPotential', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 h-24"
-                placeholder="ما هي إمكانات السوق التجارية؟"
-              />
-            </div>
-          </div>
-        )
-
-      default:
-        return (
-          <div className="text-center py-12 text-slate-500">
-            <p>اختر قسماً من القائمة الجانبية</p>
-            <p className="text-sm mt-1">Select a section from the sidebar</p>
-          </div>
-        )
-    }
-  }
+  const tabs = [
+    { id: 'essentials', label: 'الأساسيات / Essentials', icon: '⚡' },
+    { id: 'story', label: 'القصة / Story', icon: '📖' },
+    { id: 'visual', label: 'البصريات / Visual', icon: '🎨' },
+    { id: 'market', label: 'السوق / Market', icon: '📊' },
+    { id: 'business', label: 'الأعمال / Business', icon: '💼' },
+    { id: 'team', label: 'الفريق / Team', icon: '👥' },
+    { id: 'ask', label: 'الطلب / Ask', icon: '🎯' },
+  ]
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-slate-200 overflow-y-auto">
-        <div className="p-4 border-b">
-          <h2 className="font-bold text-lg">Pitch Deck</h2>
-          <p className="text-xs text-slate-500">العرض التقديمي المختصر</p>
-        </div>
-
-        <nav className="p-2">
-          {sectionsList.map((section) => (
-            <button
-              key={section.id}
-              onClick={() => setActiveSection(section.id)}
-              className={`w-full text-left px-4 py-3 rounded-lg mb-1 transition ${
-                activeSection === section.id
-                  ? 'bg-slate-900 text-white'
-                  : 'hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span>{section.icon}</span>
-                <div>
-                  <div className="text-sm font-medium">{section.titleEn}</div>
-                  <div className="text-xs opacity-75">{section.title}</div>
-                </div>
-              </div>
-            </button>
-          ))}
-        </nav>
+    <div className="max-w-5xl mx-auto">
+      {/* Pitch Deck Banner */}
+      <div className="bg-gradient-to-r from-blue-900 to-blue-700 text-white rounded-xl p-6 mb-6">
+        <h2 className="text-2xl font-bold mb-2">Pitch Deck: Quick & Impactful</h2>
+        <p className="text-blue-100">
+          Keep it concise. Focus on essentials. Make every word count.
+        </p>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center z-10">
-          <div>
-            <h1 className="text-xl font-bold">
-              {sectionsList.find(s => s.id === activeSection)?.titleEn}
-            </h1>
-            <p className="text-sm text-slate-500">
-              {sectionsList.find(s => s.id === activeSection)?.title}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {saveMessage && (
-              <span className={`text-sm ${saveMessage.includes('✓') ? 'text-green-600' : 'text-red-600'}`}>
-                {saveMessage}
-              </span>
-            )}
+      {/* Section Tabs */}
+      <div className="bg-white rounded-xl shadow-sm mb-6 overflow-x-auto">
+        <div className="flex border-b">
+          {tabs.map((tab) => (
             <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-6 py-4 font-semibold transition whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'text-slate-900 border-b-2 border-slate-900'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
             >
-              {isSaving ? 'جاري الحفظ...' : 'حفظ / Save'}
+              <span className="mr-2">{tab.icon}</span>
+              {tab.label}
             </button>
-          </div>
+          ))}
         </div>
+      </div>
 
-        <div className="p-8">
-          {renderSectionContent()}
+      {/* Content Area */}
+      <div className="bg-white rounded-xl shadow-sm p-8">
+        {activeTab === 'essentials' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Essential Elements</h2>
+
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-green-900">
+                ⚡ <strong>Pitch Deck Focus:</strong> This is your quick pitch.
+                Keep everything tight, clear, and compelling. No fluff.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Project Title
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                placeholder="Enter project title"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Logline (18-35 words) - Your Hook
+              </label>
+              <textarea
+                value={formData.logline}
+                onChange={(e) => handleInputChange('logline', e.target.value)}
+                rows={3}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="One compelling sentence that sells the concept"
+              />
+              <p className="text-sm text-slate-500 mt-1">
+                Word count: {formData.logline.split(' ').filter((w: string) => w).length} (Target: 18-35)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Elevator Pitch (30 seconds verbal pitch)
+              </label>
+              <textarea
+                value={formData.elevator}
+                onChange={(e) => handleInputChange('elevator', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="What you'd say in 30 seconds to hook someone"
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'story' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Core Story</h2>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Synopsis (200-300 words max)
+              </label>
+              <textarea
+                value={formData.synopsis}
+                onChange={(e) => handleInputChange('synopsis', e.target.value)}
+                rows={6}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Concise story overview (200-300 words)"
+              />
+              <p className="text-sm text-slate-500 mt-1">
+                Word count: {formData.synopsis.split(' ').filter((w: string) => w).length} (Target: 200-300)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Why This / Why Now (The "So What?")
+              </label>
+              <textarea
+                value={formData.whyThisWhyNow}
+                onChange={(e) => handleInputChange('whyThisWhyNow', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Why this project matters RIGHT NOW. What makes it timely and relevant?"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Main Characters (Top 3 only)
+              </label>
+              <textarea
+                value={formData.mainCharacters}
+                onChange={(e) => handleInputChange('mainCharacters', e.target.value)}
+                rows={5}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Brief description of your 3 main characters (1-2 sentences each)"
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'visual' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Visual Identity</h2>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Visual Style (Concise)
+              </label>
+              <textarea
+                value={formData.visualStyle}
+                onChange={(e) => handleInputChange('visualStyle', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Key visual elements in 3-4 sentences"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Tone
+              </label>
+              <input
+                type="text"
+                value={formData.tone}
+                onChange={(e) => handleInputChange('tone', e.target.value)}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                placeholder="e.g., Dark comedy with heart, Intense thriller, Whimsical drama"
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'market' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Market Positioning</h2>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Comparables (2-3 titles with justification)
+              </label>
+              <textarea
+                value={formData.comps}
+                onChange={(e) => handleInputChange('comps', e.target.value)}
+                rows={5}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="List 2-3 successful comparable projects and explain why they're relevant"
+              />
+              <p className="text-sm text-slate-500 mt-1">
+                Include title, why it's similar, and what makes your project different/better
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Target Audience (Be specific)
+              </label>
+              <textarea
+                value={formData.targetAudience}
+                onChange={(e) => handleInputChange('targetAudience', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Who exactly will watch this? Age, interests, viewing habits"
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'business' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Business Essentials</h2>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Budget Overview (High-level numbers)
+              </label>
+              <textarea
+                value={formData.budgetOverview}
+                onChange={(e) => handleInputChange('budgetOverview', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Total budget and major categories (pre-production, production, post, marketing)"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Financing Ask (What you need)
+              </label>
+              <textarea
+                value={formData.financingAsk}
+                onChange={(e) => handleInputChange('financingAsk', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="How much funding you're seeking and what it will be used for"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Distribution Plan (Where will it go?)
+              </label>
+              <textarea
+                value={formData.distributionPlan}
+                onChange={(e) => handleInputChange('distributionPlan', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Target platforms, release strategy, distribution partners"
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'team' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Key Team</h2>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-yellow-900">
+                👥 <strong>Team Tip:</strong> Only include key people with relevant credits.
+                Quality over quantity. Show credibility.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Key Team Members (3-5 people max)
+              </label>
+              <textarea
+                value={formData.keyTeam}
+                onChange={(e) => handleInputChange('keyTeam', e.target.value)}
+                rows={8}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="List key team members with roles and relevant experience/credits"
+              />
+              <p className="text-sm text-slate-500 mt-1">
+                Format: Name - Role - Key Credits/Experience
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'ask' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">The Ask</h2>
+
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-red-900">
+                🎯 <strong>Call to Action:</strong> End strong. Be clear about what you want
+                and when you need it. Make it easy to say yes.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                What Are You Asking For? (Be specific)
+              </label>
+              <textarea
+                value={formData.ask}
+                onChange={(e) => handleInputChange('ask', e.target.value)}
+                rows={5}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="Clear, specific ask: funding amount, partnerships, distribution deal, etc."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Timeline & Next Steps
+              </label>
+              <textarea
+                value={formData.timeline}
+                onChange={(e) => handleInputChange('timeline', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                placeholder="When do you need a decision? What are the immediate next steps?"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Save Button */}
+        <div className="mt-8 pt-6 border-t">
+          <button
+            onClick={handleSave}
+            className="w-full px-6 py-3 bg-slate-900 text-white rounded-lg font-semibold hover:bg-slate-800 transition"
+          >
+            Save Changes
+          </button>
         </div>
       </div>
     </div>

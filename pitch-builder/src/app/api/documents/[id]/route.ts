@@ -9,6 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user) {
@@ -17,8 +18,6 @@ export async function GET(
         { status: 401 }
       )
     }
-
-    const { id } = await params
 
     const document = await prisma.document.findUnique({
       where: { id },
@@ -54,7 +53,7 @@ export async function GET(
     // Check authorization
     if (document.project.createdById !== (session.user as any).id) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Forbidden' },
         { status: 403 }
       )
     }
@@ -75,6 +74,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user) {
@@ -84,7 +84,6 @@ export async function PATCH(
       )
     }
 
-    const { id } = await params
     const body = await request.json()
     const { sections } = body
 
@@ -96,10 +95,17 @@ export async function PATCH(
       }
     })
 
-    if (!document || document.project.createdById !== (session.user as any).id) {
+    if (!document) {
       return NextResponse.json(
-        { error: 'Document not found or unauthorized' },
+        { error: 'Document not found' },
         { status: 404 }
+      )
+    }
+
+    if (document.project.createdById !== (session.user as any).id) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
       )
     }
 
@@ -128,6 +134,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user) {
@@ -137,8 +144,6 @@ export async function DELETE(
       )
     }
 
-    const { id } = await params
-
     // Verify document ownership
     const document = await prisma.document.findUnique({
       where: { id },
@@ -147,10 +152,17 @@ export async function DELETE(
       }
     })
 
-    if (!document || document.project.createdById !== (session.user as any).id) {
+    if (!document) {
       return NextResponse.json(
-        { error: 'Document not found or unauthorized' },
+        { error: 'Document not found' },
         { status: 404 }
+      )
+    }
+
+    if (document.project.createdById !== (session.user as any).id) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
       )
     }
 
